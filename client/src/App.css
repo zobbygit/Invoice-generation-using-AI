@@ -1,0 +1,196 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  /* Smooth modern gradient */
+  background: linear-gradient(135deg, #3e9ceee7, #00f1fecb); 
+  color: #111827; /* Slightly darker gray for better readability */
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app-container {
+  padding: 2rem; /* Use rem for scalable spacing */
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* --- CARD & FORM STYLING ---
+*/
+.card {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  max-width: 900px;
+  width: 100%; /* Changed from 90% for better control */
+  margin: 20px auto;
+  box-sizing: border-box;
+}
+
+.section-header {
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 10px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.section-header:first-child {
+  margin-top: 0;
+}
+
+.input-field {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+/* --- BUTTON STYLING ---
+*/
+button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: transform 0.1s ease-in-out, background-color 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+.button-blue {
+  background-color: #3b82f6;
+  color: #fff;
+  margin-bottom: 20px;
+}
+.button-blue:hover { background-color: #2563eb; }
+
+.button-green {
+  background-color: #10b981;
+  color: #fff;
+  margin-top: 10px;
+  width: 100%; /* Make generate button full-width */
+}
+.button-green:hover { background-color: #059669; }
+
+.button-orange {
+  background-color: #f39e0b;
+  color: #fff;
+}
+.button-orange:hover { background-color: #d97706; }
+
+button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- LAYOUT & PREVIEW ---
+*/
+.flex-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.flex-row input {
+  flex: 1; /* Allow inputs to grow and shrink evenly */
+  min-width: 100px; /* Prevent inputs from becoming too small */
+}
+
+.flex-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.flex-buttons button {
+  flex: 1 1 auto; /* Allow buttons to grow but also wrap */
+  min-width: 150px;
+}
+
+/* --- RESPONSIVE INVOICE PREVIEW (KEY CHANGE) --- */
+.invoice-preview {
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  overflow-x: auto; /* This makes the container scrollable on the X-axis if content overflows */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+.invoice-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 600px; /* Ensures table has a minimum width before scrolling starts */
+}
+
+.invoice-preview th,
+.invoice-preview td {
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.invoice-preview th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+/* --- MOBILE RESPONSIVENESS ---
+*/
+
+/* For tablets and smaller devices */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+  }
+  .card {
+    padding: 1.5rem;
+  }
+  .flex-row {
+    flex-wrap: wrap; /* Allow items to wrap onto the next line */
+  }
+}
+
+/* For mobile phones */
+@media (max-width: 600px) {
+  body {
+    font-size: 14px; /* Slightly smaller base font for mobile */
+  }
+  .app-container {
+    padding: 10px;
+  }
+  .card {
+    padding: 1rem;
+    width: 100%; /* Ensure card takes full width */
+  }
+  .flex-row {
+    flex-direction: column; /* Stack item inputs vertically */
+    gap: 0; /* Remove gap when stacked */
+  }
+  h1 {
+    font-size: 1.5rem;
+  }
+  .section-header {
+    font-size: 1.1rem;
+  }
+}
