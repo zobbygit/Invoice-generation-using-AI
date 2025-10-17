@@ -146,7 +146,7 @@ body {
   margin-top: 18px;
 }
 
-.invoice-preview {
+/* .invoice-preview {
   background: #ffffff;
   color: #111827;
   border-radius: 10px;
@@ -155,7 +155,7 @@ body {
   max-height: auto;
   overflow-y: auto;
   font-size: 0.95rem;
-}
+} */
 
 .totals {
   margin-top: 15px;
@@ -185,13 +185,13 @@ body {
 }
 
 /* Scrollbar for preview */
-.invoice-preview::-webkit-scrollbar {
+/* .invoice-preview::-webkit-scrollbar {
   width: 8px;
 }
 .invoice-preview::-webkit-scrollbar-thumb {
   background: #2563eb;
   border-radius: 10px;
-}
+} */
 
 /* Existing styles... keep all your previous code above */
 
@@ -235,10 +235,10 @@ body {
     gap: 10px;
   }
 
-  .invoice-preview {
+  /* .invoice-preview {
     font-size: 0.9rem;
     padding: 15px;
-  }
+  } */
 
   .totals h3 {
     font-size: 1rem;
@@ -264,5 +264,90 @@ body {
 
   .totals h3 {
     font-size: 0.95rem;
+  }
+}
+
+
+
+
+
+.invoice-preview {
+  background: #ffffff;
+  color: #111827;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 15px;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  font-size: 0.95rem;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.invoice-preview * {
+  max-width: 100%;
+  word-wrap: break-word;
+  box-sizing: border-box;
+}
+
+/* Make invoice table responsive */
+.invoice-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.invoice-preview table th,
+.invoice-preview table td {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+}
+
+.invoice-preview table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px) {
+  .invoice-preview {
+    font-size: 0.9rem;
+    padding: 15px;
+  }
+
+  .invoice-preview table,
+  .invoice-preview thead,
+  .invoice-preview tbody,
+  .invoice-preview th,
+  .invoice-preview td,
+  .invoice-preview tr {
+    display: block;
+  }
+
+  .invoice-preview tr {
+    margin-bottom: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .invoice-preview td {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border: none;
+    border-bottom: 1px dashed #ccc;
+  }
+
+  .invoice-preview td:last-child {
+    border-bottom: none;
+  }
+
+  .invoice-preview td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #1f2937;
   }
 }
