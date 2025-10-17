@@ -66,7 +66,7 @@ function App() {
     setLoading(true);
     try {
       const totals = calculateTotals();
-const response = await axios.post('https://your-backend-url-goes-here/generate-invoice', {
+const response = await axios.post('https://invoice-generation-xa14.onrender.com/generate-invoice', {
         ...invoiceData,
         totals
       });
