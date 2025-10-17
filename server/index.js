@@ -5,7 +5,28 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+
+
+// In server/index.js
+
+const allowedOrigins = [
+    'http://localhost:3000', 
+    // We will add your live frontend URL here later
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
+
+
+
 app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -21,18 +42,14 @@ const InvoiceSchema = new mongoose.Schema({
 });
 const Invoice = mongoose.model('Invoice', InvoiceSchema);
 
-// In server/index.js
-
 app.post('/generate-invoice', async (req, res) => {
-    // 1. RECEIVE the pre-calculated totals from the frontend
     const { company, client, items, notes, discount, invoiceMeta, totals } = req.body;
 
-    // The backend now trusts the frontend's calculations. No more recalculating here!
-
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // FIXED: Changed to v1 API compatible model name
+       model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+            
 
-        // 2. A CLEANER and more direct prompt using the frontend's data
         const prompt = `
             Generate a professional and modern HTML invoice with inline CSS.
 
@@ -43,6 +60,8 @@ app.post('/generate-invoice', async (req, res) => {
             - The financial summary must be clearly displayed and highlighted.
             - The Grand Total should be the most prominent figure.
             - Return ONLY the raw HTML code, with no markdown formatting like \`\`\`html.
+            - Use modern, professional styling with a color scheme (blues, grays).
+            - Make it print-friendly.
 
             ---
             **DATA STARTS HERE**
@@ -57,6 +76,7 @@ app.post('/generate-invoice', async (req, res) => {
             **Client Details:**
             - Name: ${client.name}
             - Address: ${client.address}
+            - Phone: ${client.phone}
 
             **Invoice Details:**
             - Invoice #: ${invoiceMeta.number || '001'}
@@ -65,12 +85,50 @@ app.post('/generate-invoice', async (req, res) => {
             - PO Number: ${invoiceMeta.po || 'N/A'}
 
             **Items:**
-            ${items.map(item => `- Description: ${item.description}, Quantity: ${item.quantity}, Unit Price: $${parseFloat(item.price || 0).toFixed(2)}`).join('\n')}
+            ${items.map((item, index) => {
+                const qty = parseFloat(item.quantity || 0);
+                const price = parseFloat(item.price || 0);
+                const lineTotal = qty * price;
+          return `- Item ${index + 1}: ${item.description}, Quantity: ${qty}, Unit Price: ₹${price.toFixed(2)}, Line Total: ₹${lineTotal.toFixed(2)}`;
+
+            }).join('\n')}
 
             **Financial Summary (Use these exact values):**
-            - Subtotal: $${totals.subtotal.toFixed(2)}
-            - Discount: ${discount}% (-$${totals.discountAmount.toFixed(2)})
-            - **Grand Total: $${totals.total.toFixed(2)}**
+            - Subtotal: ₹${totals.subtotal.toFixed(2)}
+            - Discount: ${discount}% (-₹${totals.discountAmount.toFixed(2)})
+            - **Grand Total: ₹${totals.total.toFixed(2)}**
+
+ **Financial Summary:**
+      - Subtotal: ₹${totals.subtotal.toFixed(2)}
+      - Discount: ${discount}% (-₹${totals.discountAmount.toFixed(2)})
+      - CGST (9%): ₹${(totals.subtotal * 0.09).toFixed(2)}
+      - SGST (9%): ₹${(totals.subtotal * 0.09).toFixed(2)}
+      - Grand Total: ₹${(totals.total + (totals.subtotal * 0.18)).toFixed(2)}
+
+      **Bank Details:**
+      - Bank Name: HDFC Bank
+      - Account Number: XXXX XXXX 1234
+      - IFSC Code: HDFC0001234
+      - Branch: Park Street, Kolkata
+      - UPI ID: zohaib@upi
+
+
+      **Authorized Signature:**
+      - Add a “Signature” section with a placeholder line and label "Authorized Signatory"
+      - Add a "Signature" name "Zohaib Aslam" above the Authorized Signatory field(mandatory to add)
+
+
+
+
+
+      **Footer:**
+      - “Thank you for your business!”
+      - “This is a computer-generated invoice — no signature required if paid digitally.”
+      - Center this text at the bottom in small gray font.
+
+  
+
+
 
             **Payment & Notes:**
             - Payment Method: ${invoiceMeta.terms || 'Not Specified'}
@@ -90,7 +148,10 @@ app.post('/generate-invoice', async (req, res) => {
         res.json({ html: htmlContent });
     } catch (error) {
         console.error("Error generating invoice:", error);
-        res.status(500).send("Failed to generate invoice.");
+        res.status(500).json({ 
+            error: "Failed to generate invoice.",
+            details: error.message 
+        });
     }
 });
 
