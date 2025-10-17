@@ -12,7 +12,7 @@ const app = express();
 
 const allowedOrigins = [
     'http://localhost:3000', 
-    'https://invoice-generator-app.onrender.com'
+    'https://invoice-generation-live.onrender.com'
 ];
 
 app.use(cors({
