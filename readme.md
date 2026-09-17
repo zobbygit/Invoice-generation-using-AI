@@ -195,7 +195,7 @@ invoice-ai/
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/invoice-ai.git
+git clone https://github.com/zobbygit/Invoice-generation-using-AI
 cd invoice-ai
 ```
 
