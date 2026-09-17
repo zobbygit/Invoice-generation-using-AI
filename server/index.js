@@ -8,6 +8,9 @@ dotenv.config();
 
 const app = express();
 
+// ===============================
+// MIDDLEWARE
+// ===============================
 app.use(express.json({ limit: "2mb" }));
 
 app.use(
@@ -24,7 +27,6 @@ app.use(
 // ===============================
 // ENV
 // ===============================
-
 const PORT = process.env.PORT || 5001;
 const HF_TOKEN = process.env.HF_TOKEN;
 const MONGO_URI = process.env.MONGO_URI;
@@ -37,7 +39,6 @@ if (!MONGO_URI) console.error("❌ MONGO_URI is missing");
 // ===============================
 // HUGGING FACE CLIENT
 // ===============================
-
 const openai = new OpenAI({
   apiKey: HF_TOKEN,
   baseURL: HF_BASE_URL,
@@ -46,35 +47,30 @@ const openai = new OpenAI({
 // ===============================
 // MONGODB
 // ===============================
-
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err.message));
 
 // ===============================
-// INVOICE SCHEMA  ⭐ UPDATED
+// INVOICE SCHEMA
 // ===============================
-
 const InvoiceSchema = new mongoose.Schema({
   clientName: {
     type: String,
     required: true,
-    index: true, // ⭐ NEW: faster client queries
+    index: true,
   },
 
   invoiceNumber: {
-    // ⭐ NEW
     type: String,
     index: true,
   },
 
   companyName: {
-    // ⭐ NEW: quick search
     type: String,
   },
 
-  // ⭐ NEW: store totals so Dashboard can aggregate
   totals: {
     subtotal: { type: Number, default: 0 },
     discountAmount: { type: Number, default: 0 },
@@ -85,7 +81,6 @@ const InvoiceSchema = new mongoose.Schema({
     total: { type: Number, default: 0 },
   },
 
-  // ⭐ NEW: full snapshot of the invoice data
   snapshot: {
     type: mongoose.Schema.Types.Mixed,
   },
@@ -98,7 +93,7 @@ const InvoiceSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    index: true, // ⭐ NEW: faster date-range queries
+    index: true,
   },
 });
 
@@ -107,7 +102,6 @@ const Invoice = mongoose.model("Invoice", InvoiceSchema);
 // ===============================
 // FREE MODEL CACHE
 // ===============================
-
 let modelCache = [];
 let modelCacheTime = 0;
 const MODEL_CACHE_TTL = 10 * 60 * 1000;
@@ -115,7 +109,6 @@ const MODEL_CACHE_TTL = 10 * 60 * 1000;
 // ===============================
 // CHECK FREE PROVIDER
 // ===============================
-
 function isFreeProvider(provider) {
   if (!provider) return false;
   if (provider.is_free === true) return true;
@@ -127,15 +120,20 @@ function isFreeProvider(provider) {
 // ===============================
 // FETCH FREE MODELS
 // ===============================
-
 async function fetchFreeModels(forceRefresh = false) {
   const now = Date.now();
 
-  if (!forceRefresh && modelCache.length > 0 && now - modelCacheTime < MODEL_CACHE_TTL) {
+  if (
+    !forceRefresh &&
+    modelCache.length > 0 &&
+    now - modelCacheTime < MODEL_CACHE_TTL
+  ) {
     return modelCache;
   }
 
-  if (!HF_TOKEN) throw new Error("HF_TOKEN is missing from environment variables.");
+  if (!HF_TOKEN) {
+    throw new Error("HF_TOKEN is missing from environment variables.");
+  }
 
   console.log("🔎 Fetching Hugging Face models...");
 
@@ -149,11 +147,17 @@ async function fetchFreeModels(forceRefresh = false) {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error(`HF returned invalid JSON. HTTP ${response.status}: ${text.slice(0, 500)}`);
+    throw new Error(
+      `HF returned invalid JSON. HTTP ${response.status}: ${text.slice(0, 500)}`
+    );
   }
 
   if (!response.ok) {
-    throw new Error(`HF /models failed HTTP ${response.status}: ${data?.error || text.slice(0, 500)}`);
+    throw new Error(
+      `HF /models failed HTTP ${response.status}: ${
+        data?.error || text.slice(0, 500)
+      }`
+    );
   }
 
   const models = Array.isArray(data?.data) ? data.data : [];
@@ -169,7 +173,8 @@ async function fetchFreeModels(forceRefresh = false) {
         id: model.id,
         model: `${model.id}:${provider.provider}`,
         provider: provider.provider,
-        contextLength: provider.context_length || model.context_length || null,
+        contextLength:
+          provider.context_length || model.context_length || null,
         isFree: provider.is_free === true,
         pricing: provider.pricing || null,
       });
@@ -177,7 +182,9 @@ async function fetchFreeModels(forceRefresh = false) {
   }
 
   const unique = Array.from(
-    new Map(freeProviders.map((item) => [`${item.id}:${item.provider}`, item])).values()
+    new Map(
+      freeProviders.map((item) => [`${item.id}:${item.provider}`, item])
+    ).values()
   );
 
   modelCache = unique;
@@ -190,7 +197,6 @@ async function fetchFreeModels(forceRefresh = false) {
 // ===============================
 // MODEL SCORING
 // ===============================
-
 function scoreModel(item) {
   const name = item.model.toLowerCase();
   let score = 0;
@@ -218,12 +224,13 @@ async function getRoutableModels() {
 // ===============================
 // GENERATE WITH FALLBACK
 // ===============================
-
 async function generateWithRouter(prompt) {
   const models = await getRoutableModels();
 
   if (!models.length) {
-    throw new Error("No currently-free HF Inference Provider models are available.");
+    throw new Error(
+      "No currently-free HF Inference Provider models are available."
+    );
   }
 
   let lastError = null;
@@ -258,14 +265,15 @@ async function generateWithRouter(prompt) {
   }
 
   throw new Error(
-    `All free HF models failed. Last error: ${lastError?.message || "Unknown error"}`
+    `All free HF models failed. Last error: ${
+      lastError?.message || "Unknown error"
+    }`
   );
 }
 
 // ===============================
 // CLEAN HTML
 // ===============================
-
 function cleanHtml(html) {
   return html.replace(/```html/gi, "").replace(/```/g, "").trim();
 }
@@ -273,7 +281,6 @@ function cleanHtml(html) {
 // ===============================
 // HEALTH CHECK
 // ===============================
-
 app.get("/", (req, res) => {
   res.json({
     status: "ok",
@@ -285,11 +292,12 @@ app.get("/", (req, res) => {
 // ===============================
 // DEBUG HUGGING FACE
 // ===============================
-
 app.get("/debug/huggingface", async (req, res) => {
   try {
     if (!HF_TOKEN) {
-      return res.status(500).json({ success: false, error: "HF_TOKEN is missing." });
+      return res
+        .status(500)
+        .json({ success: false, error: "HF_TOKEN is missing." });
     }
 
     const response = await fetch(`${HF_BASE_URL}/models`, {
@@ -343,7 +351,6 @@ app.get("/debug/huggingface", async (req, res) => {
 // ===============================
 // LIST FREE MODELS
 // ===============================
-
 app.get("/ai/models", async (req, res) => {
   try {
     const models = await getRoutableModels();
@@ -357,7 +364,6 @@ app.get("/ai/models", async (req, res) => {
 // ===============================
 // REFRESH MODELS
 // ===============================
-
 app.post("/ai/models/refresh", async (req, res) => {
   try {
     const models = await fetchFreeModels(true);
@@ -369,9 +375,8 @@ app.post("/ai/models/refresh", async (req, res) => {
 });
 
 // ===============================
-// GENERATE INVOICE  🔧 UPDATED
+// GENERATE INVOICE
 // ===============================
-
 app.post("/generate-invoice", async (req, res) => {
   try {
     console.log("====================================");
@@ -387,7 +392,7 @@ app.post("/generate-invoice", async (req, res) => {
       discount,
       gstPercent,
       totals,
-      taxMode, // ⭐ NEW: 'simple' | 'split'
+      taxMode,
     } = req.body;
 
     if (!company?.name) {
@@ -397,10 +402,12 @@ app.post("/generate-invoice", async (req, res) => {
       return res.status(400).json({ error: "Client name is required." });
     }
     if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: "At least one invoice item is required." });
+      return res
+        .status(400)
+        .json({ error: "At least one invoice item is required." });
     }
 
-    // ⭐ NEW: human-readable tax label per item
+    // Human-readable tax label per item
     const taxLabel = (taxType) => {
       const map = {
         gst0: "GST 0%",
@@ -415,40 +422,95 @@ app.post("/generate-invoice", async (req, res) => {
       return map[taxType] || "GST 0%";
     };
 
-    // ⭐ NEW: build tax breakdown block for the prompt
+    // Build tax breakdown block for the prompt
     const taxModeUsed = taxMode || "simple";
     let taxBreakdownText = "";
 
     if (taxModeUsed === "simple") {
-      taxBreakdownText = `GST (${gstPercent || 0}%): ₹${totals?.gstAmount ?? 0}`;
+      taxBreakdownText = `GST (${gstPercent || 0}%): ₹${
+        totals?.gstAmount ?? 0
+      }`;
     } else {
       const lines = [];
-      if ((totals?.cgstAmount || 0) > 0) lines.push(`CGST: ₹${totals.cgstAmount}`);
-      if ((totals?.sgstAmount || 0) > 0) lines.push(`SGST: ₹${totals.sgstAmount}`);
-      if ((totals?.igstAmount || 0) > 0) lines.push(`IGST: ₹${totals.igstAmount}`);
+      if ((totals?.cgstAmount || 0) > 0)
+        lines.push(`CGST: ₹${totals.cgstAmount}`);
+      if ((totals?.sgstAmount || 0) > 0)
+        lines.push(`SGST: ₹${totals.sgstAmount}`);
+      if ((totals?.igstAmount || 0) > 0)
+        lines.push(`IGST: ₹${totals.igstAmount}`);
       lines.push(`Total Tax: ₹${totals?.gstAmount ?? 0}`);
       taxBreakdownText = lines.join("\n");
     }
 
-    // ⭐ NEW: amount in words helper (mirror of frontend)
+    // Amount in words (mirror of frontend)
     const numberToWords = (num) => {
-      const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-        'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-        'Seventeen', 'Eighteen', 'Nineteen'];
-      const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+      const a = [
+        "",
+        "One",
+        "Two",
+        "Three",
+        "Four",
+        "Five",
+        "Six",
+        "Seven",
+        "Eight",
+        "Nine",
+        "Ten",
+        "Eleven",
+        "Twelve",
+        "Thirteen",
+        "Fourteen",
+        "Fifteen",
+        "Sixteen",
+        "Seventeen",
+        "Eighteen",
+        "Nineteen",
+      ];
+      const b = [
+        "",
+        "",
+        "Twenty",
+        "Thirty",
+        "Forty",
+        "Fifty",
+        "Sixty",
+        "Seventy",
+        "Eighty",
+        "Ninety",
+      ];
       const inWords = (n) => {
         if (n < 20) return a[n];
-        if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
-        if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + inWords(n % 100) : '');
-        if (n < 100000) return inWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + inWords(n % 1000) : '');
-        if (n < 10000000) return inWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + inWords(n % 100000) : '');
-        return inWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + inWords(n % 10000000) : '');
+        if (n < 100)
+          return b[Math.floor(n / 10)] + (n % 10 ? " " + a[n % 10] : "");
+        if (n < 1000)
+          return (
+            a[Math.floor(n / 100)] +
+            " Hundred" +
+            (n % 100 ? " " + inWords(n % 100) : "")
+          );
+        if (n < 100000)
+          return (
+            inWords(Math.floor(n / 1000)) +
+            " Thousand" +
+            (n % 1000 ? " " + inWords(n % 1000) : "")
+          );
+        if (n < 10000000)
+          return (
+            inWords(Math.floor(n / 100000)) +
+            " Lakh" +
+            (n % 100000 ? " " + inWords(n % 100000) : "")
+          );
+        return (
+          inWords(Math.floor(n / 10000000)) +
+          " Crore" +
+          (n % 10000000 ? " " + inWords(n % 10000000) : "")
+        );
       };
       const rupees = Math.floor(num || 0);
       const paise = Math.round(((num || 0) - rupees) * 100);
-      let result = rupees ? inWords(rupees) + ' Rupees' : '';
-      if (paise) result += (result ? ' and ' : '') + inWords(paise) + ' Paise';
-      return result ? result + ' Only' : 'Zero Rupees Only';
+      let result = rupees ? inWords(rupees) + " Rupees" : "";
+      if (paise) result += (result ? " and " : "") + inWords(paise) + " Paise";
+      return result ? result + " Only" : "Zero Rupees Only";
     };
 
     const amountInWords = numberToWords(totals?.total ?? 0);
@@ -468,7 +530,6 @@ IMPORTANT:
 - Use ONLY inline CSS (style="..."). Do NOT use <style> tags.
 - Do NOT include <html>, <head>, or <body> tags. Return only the inner content.
 - Make it suitable for A4 PDF printing.
-...
 
 COMPANY INFORMATION:
 Company Name: ${company.name}
@@ -504,7 +565,9 @@ ${index + 1}. ${item.description || "Item"}
 Quantity: ${item.quantity || 0}
 Unit Price: ${item.price || 0}
 ${taxModeUsed === "split" ? `Tax: ${taxLabel(item.taxType)}` : ""}
-Line Total: ₹${((Number(item.quantity) || 0) * (Number(item.price) || 0)).toFixed(2)}
+Line Total: ₹${(
+      (Number(item.quantity) || 0) * (Number(item.price) || 0)
+    ).toFixed(2)}
 `
   )
   .join("\n")}
@@ -513,7 +576,11 @@ DISCOUNT:
 ${discount || 0}%
 
 TAX MODE:
-${taxModeUsed === "simple" ? `Simple GST (${gstPercent || 0}%)` : "Per-item Tax (CGST / SGST / IGST)"}
+${
+  taxModeUsed === "simple"
+    ? `Simple GST (${gstPercent || 0}%)`
+    : "Per-item Tax (CGST / SGST / IGST)"
+}
 
 EXACT FINANCIAL TOTALS:
 Subtotal: ${totals?.subtotal ?? 0}
@@ -551,10 +618,7 @@ Use a clean professional business-invoice design.
     const result = await generateWithRouter(prompt);
     const cleanedHtml = cleanHtml(result.html);
 
-    // --------------------------------
-    // Save invoice  ⭐ UPDATED: store totals + snapshot
-    // --------------------------------
-
+    // Save invoice
     const invoice = new Invoice({
       clientName: client.name,
       invoiceNumber: invoiceMeta?.number || "",
@@ -593,7 +657,7 @@ Use a clean professional business-invoice design.
       html: cleanedHtml,
       model: result.model,
       provider: result.provider,
-      invoiceId: invoice._id, // ⭐ NEW: return id for dashboard linking
+      invoiceId: invoice._id,
     });
   } catch (error) {
     console.error("====================================");
@@ -611,19 +675,11 @@ Use a clean professional business-invoice design.
 });
 
 // ===============================
-// ⭐ NEW: LIST INVOICES (with filters + pagination)
+// LIST INVOICES (with filters + pagination)
 // ===============================
-
 app.get("/invoices", async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      client,
-      from,
-      to,
-      search,
-    } = req.query;
+    const { page = 1, limit = 20, client, from, to, search } = req.query;
 
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
@@ -651,7 +707,7 @@ app.get("/invoices", async (req, res) => {
         .sort({ createdAt: -1 })
         .skip((pageNum - 1) * limitNum)
         .limit(limitNum)
-        .select("-invoiceHtml -snapshot"), // keep payload small
+        .select("-invoiceHtml -snapshot"),
       Invoice.countDocuments(filter),
     ]);
 
@@ -670,14 +726,15 @@ app.get("/invoices", async (req, res) => {
 });
 
 // ===============================
-// ⭐ NEW: GET SINGLE INVOICE
+// GET SINGLE INVOICE
 // ===============================
-
 app.get("/invoices/:id", async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) {
-      return res.status(404).json({ success: false, error: "Invoice not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Invoice not found" });
     }
     res.json({ success: true, invoice });
   } catch (error) {
@@ -687,14 +744,15 @@ app.get("/invoices/:id", async (req, res) => {
 });
 
 // ===============================
-// ⭐ NEW: DELETE INVOICE
+// DELETE INVOICE
 // ===============================
-
 app.delete("/invoices/:id", async (req, res) => {
   try {
     const deleted = await Invoice.findByIdAndDelete(req.params.id);
     if (!deleted) {
-      return res.status(404).json({ success: false, error: "Invoice not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Invoice not found" });
     }
     res.json({ success: true, message: "Invoice deleted" });
   } catch (error) {
@@ -704,15 +762,25 @@ app.delete("/invoices/:id", async (req, res) => {
 });
 
 // ===============================
-// ⭐ NEW: STATS FOR DASHBOARD
+// STATS FOR DASHBOARD
 // ===============================
-
 app.get("/stats", async (req, res) => {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const startOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
+    );
+    const endOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59
+    );
     const last14Days = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
     const [allAgg, monthAgg, lastMonthAgg] = await Promise.all([
@@ -800,7 +868,6 @@ app.get("/stats", async (req, res) => {
 // ===============================
 // START SERVER
 // ===============================
-
 app.listen(PORT, () => {
   console.log("====================================");
   console.log(`🚀 Server running on port ${PORT}`);
